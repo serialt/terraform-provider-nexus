@@ -3,11 +3,11 @@ package provider
 import (
 	nexus "github.com/datadrivers/go-nexus-client/nexus3"
 	"github.com/datadrivers/go-nexus-client/nexus3/pkg/client"
-	"github.com/datadrivers/terraform-provider-nexus/internal/services/blobstore"
-	"github.com/datadrivers/terraform-provider-nexus/internal/services/other"
-	"github.com/datadrivers/terraform-provider-nexus/internal/services/repository"
-	"github.com/datadrivers/terraform-provider-nexus/internal/services/security"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/serialt/terraform-provider-nexus/internal/services/blobstore"
+	"github.com/serialt/terraform-provider-nexus/internal/services/other"
+	"github.com/serialt/terraform-provider-nexus/internal/services/repository"
+	"github.com/serialt/terraform-provider-nexus/internal/services/security"
 )
 
 // Provider returns a terraform.Provider
@@ -127,6 +127,7 @@ func Provider() *schema.Provider {
 			"nexus_repository_yum_proxy":                  repository.ResourceRepositoryYumProxy(),
 			"nexus_routing_rule":                          other.ResourceRoutingRule(),
 			"nexus_script":                                other.ResourceScript(),
+			"nexus_cleanup_policy":                        other.ResourceCleanUpPolicy(),
 			"nexus_security_anonymous":                    security.ResourceSecurityAnonymous(),
 			"nexus_security_content_selector":             security.ResourceSecurityContentSelector(),
 			"nexus_security_ldap":                         security.ResourceSecurityLDAP(),

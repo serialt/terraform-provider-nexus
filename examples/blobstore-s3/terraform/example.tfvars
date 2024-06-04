@@ -2,7 +2,7 @@
 tags = {
   provisioning = "terraform"
   use-case     = "terraform-provider-nexus"
-  github       = "https://github.com/datadrivers/terraform-provider-nexus"
+  github       = "https://github.com/serialt/terraform-provider-nexus"
   owner        = "datadrivers"
 }
 

@@ -9,10 +9,10 @@ import (
 
 	"github.com/datadrivers/go-nexus-client/nexus3/schema"
 	"github.com/datadrivers/go-nexus-client/nexus3/schema/repository"
-	"github.com/datadrivers/terraform-provider-nexus/internal/acceptance"
-	"github.com/datadrivers/terraform-provider-nexus/internal/tools"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/serialt/terraform-provider-nexus/internal/acceptance"
+	"github.com/serialt/terraform-provider-nexus/internal/tools"
 )
 
 func testAccResourceRepositoryYumProxy() repository.YumProxyRepository {

@@ -3,9 +3,9 @@ package repository
 import (
 	nexus "github.com/datadrivers/go-nexus-client/nexus3"
 	"github.com/datadrivers/go-nexus-client/nexus3/schema/repository"
-	"github.com/datadrivers/terraform-provider-nexus/internal/schema/common"
-	repositorySchema "github.com/datadrivers/terraform-provider-nexus/internal/schema/repository"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/serialt/terraform-provider-nexus/internal/schema/common"
+	repositorySchema "github.com/serialt/terraform-provider-nexus/internal/schema/repository"
 )
 
 func ResourceRepositoryMavenGroup() *schema.Resource {
