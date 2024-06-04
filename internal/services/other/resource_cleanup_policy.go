@@ -51,17 +51,17 @@ func ResourceCleanUpPolicy() *schema.Resource {
 					Schema: map[string]*schema.Schema{
 						"last_downloaded_days": {
 							Type:        schema.TypeInt,
-							Required:    false,
+							Optional:    true,
 							Description: "Remove components that were published over this amount of time",
 						},
 						"last_blob_updated_days": {
 							Type:        schema.TypeInt,
-							Required:    false,
+							Optional:    true,
 							Description: "Remove components that haven't been downloaded in this amount of time",
 						},
 						"regex": {
 							Type:     schema.TypeString,
-							Required: false,
+							Optional: true,
 							Description: "Remove components that have at least one asset name matching the following" +
 								" regular expression pattern",
 						},
