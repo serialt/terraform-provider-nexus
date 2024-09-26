@@ -1,29 +1,25 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"log"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/plugin"
-	"github.com/serialt/terraform-provider-nexus/internal/provider"
+	"github.com/hashicorp/terraform-plugin-framework/providerserver"
+	provider "github.com/serialt/terraform-provider-nexus/internal"
 )
 
-// Generate docs for website
-//go:generate go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
-
 func main() {
-	var debugMode bool
+	var debug bool
 
-	flag.BoolVar(&debugMode, "debuggable", false, "set to true to run the provider with support for debuggers like delve")
+	flag.BoolVar(&debug, "debug", false, "set to true to run the provider with support for debuggers like delve")
 	flag.Parse()
 
-	// Clean up log output
-	// See https://developer.hashicorp.com/terraform/plugin/log/writing#legacy-logging
-	log.SetFlags(log.Flags() &^ (log.Ldate | log.Ltime))
-
-	plugin.Serve(&plugin.ServeOpts{
-		Debug:        debugMode,
-		ProviderAddr: "registry.terraform.io/datadrivers/nexus",
-		ProviderFunc: provider.Provider,
+	err := providerserver.Serve(context.Background(), provider.New, providerserver.ServeOpts{
+		Address: "registry.terraform.io/serialt/nexus",
+		Debug:   debug,
 	})
+	if err != nil {
+		log.Fatal(err)
+	}
 }
