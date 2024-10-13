@@ -140,7 +140,7 @@ func (d *BlobStoreFileSource) Read(ctx context.Context, req datasource.ReadReque
 	}
 	if blobStoreFile.SoftQuota != nil {
 		newState.SoftQuota = &SoftQuotaModel{
-			Limit: types.Int64Value(blobStoreFile.SoftQuota.Limit),
+			Limit: types.Int64Value(blobStoreFile.SoftQuota.Limit / (1024 * 1024)),
 			Type:  types.StringValue(blobStoreFile.SoftQuota.Type),
 		}
 	}
