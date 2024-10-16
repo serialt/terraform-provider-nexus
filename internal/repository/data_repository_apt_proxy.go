@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/nduyphuong/go-nexus-client/nexus3"
 )
 
@@ -22,20 +23,28 @@ type RepositoryAptProxyDatasource struct {
 }
 
 type RepositoryAptProxySourceModel struct {
-	Id                    types.String        `tfsdk:"id"`
-	Name                  types.String        `tfsdk:"name"`
-	Online                types.Bool          `tfsdk:"online"`
-	Flat                  types.Bool          `tfsdk:"flat"`
-	Cleanup               CleanupModel        `tfsdk:"cleanup"`
-	Path                  types.String        `tfsdk:"path"`
-	BlobCount             types.Int64         `tfsdk:"blob_count"`
-	AvailableSpaceInBytes types.Int64         `tfsdk:"available_space_in_bytes"`
-	TotalSizeInBytes      types.Int64         `tfsdk:"total_size_in_bytes"`
-	SoftQuota             *SoftQuotaModel     `tfsdk:"soft_quota"`
-	RoutingRule           types.String        `tfsdk:"routing_rule"`
-	HttpClient            *HttpClientModel    `tfsdk:"http_client"`
-	NegativeCache         *NegativeCacheModel `tfsdk:"negative_cache"`
-	Proxy                 ProxyModel          `tfsdk:"proxy"`
+	Id      types.String  `tfsdk:"id"`
+	Name    types.String  `tfsdk:"name"`
+	Online  types.Bool    `tfsdk:"online"`
+	Flat    types.Bool    `tfsdk:"flat"`
+	Cleanup *CleanupModel `tfsdk:"cleanup"`
+
+	Storage      *StorageDataSourceModel `tfsdk:"storage"`
+	Distribution types.String            `tfsdk:"distribution"`
+	// Path                  types.String        `tfsdk:"path"`
+	// BlobCount             types.Int64         `tfsdk:"blob_count"`
+	// AvailableSpaceInBytes types.Int64 `tfsdk:"available_space_in_bytes"`
+	// TotalSizeInBytes      types.Int64         `tfsdk:"total_size_in_bytes"`
+	// SoftQuota             *SoftQuotaModel     `tfsdk:"soft_quota"`
+	RoutingRule   types.String        `tfsdk:"routing_rule"`
+	HttpClient    *HttpClientModel    `tfsdk:"http_client"`
+	NegativeCache *NegativeCacheModel `tfsdk:"negative_cache"`
+	Proxy         *ProxyModel         `tfsdk:"proxy"`
+}
+
+type StorageDataSourceModel struct {
+	BlobStoreName               types.String `tfsdk:"blob_store_name"`
+	StrictContentTypeValidation types.Bool   `tfsdk:"strict_content_type_validation"`
 }
 type NegativeCacheModel struct {
 	Enabled types.Bool  `tfsdk:"enabled"`
@@ -66,11 +75,11 @@ type HttpClientConnectionModel struct {
 	Retries                 types.Int64  `tfsdk:"retries"`
 	Timeout                 types.Int64  `tfsdk:"timeout"`
 	UseTrustStore           types.Bool   `tfsdk:"use_trust_store"`
-	UserAgentSuffix         types.String `tfsdk:"user_agent_suffix "`
+	UserAgentSuffix         types.String `tfsdk:"user_agent_suffix"`
 }
 
 func (d *RepositoryAptProxyDatasource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_Repository_file"
+	resp.TypeName = req.ProviderTypeName + "_apt_proxy"
 }
 
 func (d *RepositoryAptProxyDatasource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
@@ -103,22 +112,11 @@ func (d *RepositoryAptProxyDatasource) Schema(ctx context.Context, req datasourc
 				Description:         "Cleanup policies",
 				Computed:            true,
 				Attributes: map[string]schema.Attribute{
-					"policy_names": schema.ListAttribute{
+					"policy_names": schema.SetAttribute{
 						Description:         "List of policy names",
 						MarkdownDescription: "List of policy names",
 						Computed:            true,
-					},
-				},
-			},
-			"component": schema.SingleNestedAttribute{
-				Description:         "Component configuration for the hosted repository",
-				MarkdownDescription: "Component configuration for the hosted repository",
-				Computed:            true,
-				Attributes: map[string]schema.Attribute{
-					"proprietary_components": schema.BoolAttribute{
-						Description:         "Components in this repository count as proprietary for namespace conflict attacks (requires Sonatype Nexus Firewall)",
-						MarkdownDescription: "Components in this repository count as proprietary for namespace conflict attacks (requires Sonatype Nexus Firewall)",
-						Computed:            true,
+						ElementType:         types.StringType,
 					},
 				},
 			},
@@ -173,7 +171,7 @@ func (d *RepositoryAptProxyDatasource) Schema(ctx context.Context, req datasourc
 								Description:         "The password used by the proxy repository",
 								MarkdownDescription: "The password used by the proxy repository",
 								Computed:            true,
-								Sensitive:           true,
+								// Sensitive:           true,
 							},
 							"ntlm_domain": schema.StringAttribute{
 								Description:         "The ntlm domain to connect",
@@ -185,42 +183,42 @@ func (d *RepositoryAptProxyDatasource) Schema(ctx context.Context, req datasourc
 								MarkdownDescription: "The ntlm host to connect",
 								Computed:            true,
 							},
-							"connection": schema.SingleNestedAttribute{
-								Description:         "Connection configuration of the HTTP client",
-								MarkdownDescription: "Connection configuration of the HTTP client",
+						},
+					},
+					"connection": schema.SingleNestedAttribute{
+						Description:         "Connection configuration of the HTTP client",
+						MarkdownDescription: "Connection configuration of the HTTP client",
+						Computed:            true,
+						Attributes: map[string]schema.Attribute{
+							"enable_circular_redirects": schema.BoolAttribute{
+								Description:         "Whether to enable redirects to the same location (may be required by some servers)",
+								MarkdownDescription: "Whether to enable redirects to the same location (may be required by some servers)",
 								Computed:            true,
-								Attributes: map[string]schema.Attribute{
-									"enable_circular_redirects": schema.BoolAttribute{
-										Description:         "Whether to enable redirects to the same location (may be required by some servers)",
-										MarkdownDescription: "Whether to enable redirects to the same location (may be required by some servers)",
-										Computed:            true,
-									},
-									"enable_cookies": schema.BoolAttribute{
-										Description:         "Whether to allow cookies to be stored and used",
-										MarkdownDescription: "Whether to allow cookies to be stored and used",
-										Computed:            true,
-									},
-									"retries": schema.Int64Attribute{
-										Description:         "Total retries if the initial connection attempt suffers a timeout",
-										MarkdownDescription: "Total retries if the initial connection attempt suffers a timeout",
-										Computed:            true,
-									},
-									"timeout": schema.Int64Attribute{
-										Description:         "Seconds to wait for activity before stopping and retrying the connection",
-										MarkdownDescription: "Seconds to wait for activity before stopping and retrying the connection",
-										Computed:            true,
-									},
-									"user_agent_suffix": schema.StringAttribute{
-										Description:         "Custom fragment to append to User-Agent header in HTTP requests",
-										MarkdownDescription: "Custom fragment to append to User-Agent header in HTTP requests",
-										Computed:            true,
-									},
-									"use_trust_store": schema.BoolAttribute{
-										Description:         "Use certificates stored in the Nexus Repository Manager truststore to connect to external systems",
-										MarkdownDescription: "Use certificates stored in the Nexus Repository Manager truststore to connect to external systems",
-										Computed:            true,
-									},
-								},
+							},
+							"enable_cookies": schema.BoolAttribute{
+								Description:         "Whether to allow cookies to be stored and used",
+								MarkdownDescription: "Whether to allow cookies to be stored and used",
+								Computed:            true,
+							},
+							"retries": schema.Int64Attribute{
+								Description:         "Total retries if the initial connection attempt suffers a timeout",
+								MarkdownDescription: "Total retries if the initial connection attempt suffers a timeout",
+								Computed:            true,
+							},
+							"timeout": schema.Int64Attribute{
+								Description:         "Seconds to wait for activity before stopping and retrying the connection",
+								MarkdownDescription: "Seconds to wait for activity before stopping and retrying the connection",
+								Computed:            true,
+							},
+							"user_agent_suffix": schema.StringAttribute{
+								Description:         "Custom fragment to append to User-Agent header in HTTP requests",
+								MarkdownDescription: "Custom fragment to append to User-Agent header in HTTP requests",
+								Computed:            true,
+							},
+							"use_trust_store": schema.BoolAttribute{
+								Description:         "Use certificates stored in the Nexus Repository Manager truststore to connect to external systems",
+								MarkdownDescription: "Use certificates stored in the Nexus Repository Manager truststore to connect to external systems",
+								Computed:            true,
 							},
 						},
 					},
@@ -296,13 +294,24 @@ func (d *RepositoryAptProxyDatasource) Configure(ctx context.Context, req dataso
 
 func (d *RepositoryAptProxyDatasource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 
-	// var state, newState RepositoryAptProxySourceModel
+	var state RepositoryAptProxySourceModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &state)...)
 
-	// tflog.Trace(ctx, "read a RepositoryAptProxy data source")
-	// resp.Diagnostics.Append(resp.State.Set(ctx, &newState)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	if state.Name.IsUnknown() {
+		resp.Diagnostics.AddError("Get apt proxy datasource failed", "name is unknown")
+	}
+	state, err := d.getState(state.Name.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError("Get apt proxy datasource failed", err.Error())
+	}
+	tflog.Trace(ctx, "read a apt proxy data source")
+	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
-func (d *RepositoryAptProxyDatasource) getState(ctx, name string) (data *RepositoryAptProxySourceModel, err error) {
+func (d *RepositoryAptProxyDatasource) getState(name string) (data RepositoryAptProxySourceModel, err error) {
 
 	if name == "" {
 		err = errors.New("name is nil")
@@ -314,15 +323,47 @@ func (d *RepositoryAptProxyDatasource) getState(ctx, name string) (data *Reposit
 		return
 	}
 
-	data = &RepositoryAptProxySourceModel{
-		Id:     types.StringValue(repo.Name),
-		Name:   types.StringValue(repo.Name),
-		Online: types.BoolValue(repo.Online),
-		Cleanup: CleanupModel{
-			PolicyNames: stringListValue(repo.Cleanup.PolicyNames),
+	data = RepositoryAptProxySourceModel{
+		Id:           types.StringValue(repo.Name),
+		Name:         types.StringValue(repo.Name),
+		Online:       types.BoolValue(repo.Online),
+		Flat:         types.BoolValue(repo.Apt.Flat),
+		Distribution: types.StringValue(repo.Apt.Distribution),
+
+		NegativeCache: &NegativeCacheModel{
+			Enabled: types.BoolValue(repo.NegativeCache.Enabled),
+			TTL:     types.Int64Value(int64(repo.NegativeCache.TTL)),
 		},
-		Flat: types.BoolValue(repo.Apt.Flat),
+		Proxy: &ProxyModel{
+			ContentMaxAge:  types.Int64Value(int64(repo.Proxy.ContentMaxAge)),
+			MetadataMaxAge: types.Int64Value(int64(repo.Proxy.MetadataMaxAge)),
+			RemoteURL:      types.StringValue(repo.Proxy.RemoteURL),
+		},
+		Storage: &StorageDataSourceModel{
+			BlobStoreName:               types.StringValue(repo.BlobStoreName),
+			StrictContentTypeValidation: types.BoolValue(repo.StrictContentTypeValidation),
+		},
 		HttpClient: &HttpClientModel{
+			AutoBlock:      types.BoolValue(repo.HTTPClient.AutoBlock),
+			Blocked:        types.BoolValue(repo.HTTPClient.Blocked),
+			Authentication: &HttpClientAuthenticationModel{},
+		},
+		Cleanup: &CleanupModel{
+			PolicyNames: []types.String{types.StringValue("")},
+		},
+	}
+	if repo.Cleanup != nil {
+		var plicyNames []types.String
+		for _, item := range repo.Cleanup.PolicyNames {
+			plicyNames = append(plicyNames, types.StringValue(item))
+		}
+		data.Cleanup = &CleanupModel{
+			PolicyNames: plicyNames,
+		}
+	}
+
+	if repo.HTTPClient.Authentication != nil {
+		data.HttpClient = &HttpClientModel{
 			Authentication: &HttpClientAuthenticationModel{
 				NtlmDomain: types.StringValue(repo.HTTPClient.Authentication.NTLMDomain),
 				NtlmHost:   types.StringValue(repo.HTTPClient.Authentication.NTLMHost),
@@ -330,16 +371,17 @@ func (d *RepositoryAptProxyDatasource) getState(ctx, name string) (data *Reposit
 				Username:   types.StringValue(repo.HTTPClient.Authentication.Username),
 				Password:   types.StringValue(repo.HTTPClient.Authentication.Password),
 			},
-		},
-		NegativeCache: &NegativeCacheModel{
-			Enabled: types.BoolValue(repo.NegativeCache.Enabled),
-			TTL:     types.Int64Value(int64(repo.NegativeCache.TTL)),
-		},
-		Proxy: ProxyModel{
-			ContentMaxAge:  types.Int64Value(int64(repo.Proxy.ContentMaxAge)),
-			MetadataMaxAge: types.Int64Value(int64(repo.Proxy.MetadataMaxAge)),
-			RemoteURL:      types.StringValue(repo.Proxy.RemoteURL),
-		},
+		}
+	}
+	if repo.HTTPClient.Connection != nil {
+		data.HttpClient.Connection = &HttpClientConnectionModel{
+			EnableCircularRedirects: types.BoolValue(GetValue(repo.HTTPClient.Connection.EnableCircularRedirects)),
+			EnableCookies:           types.BoolValue(GetValue(repo.HTTPClient.Connection.EnableCookies)),
+			Retries:                 types.Int64Value(int64(GetValue(repo.HTTPClient.Connection.Retries))),
+			Timeout:                 types.Int64Value(int64(GetValue(repo.HTTPClient.Connection.Timeout))),
+			UseTrustStore:           types.BoolValue(GetValue(repo.HTTPClient.Connection.UseTrustStore)),
+			UserAgentSuffix:         types.StringValue(repo.HTTPClient.Connection.UserAgentSuffix),
+		}
 	}
 
 	return
@@ -352,4 +394,13 @@ func stringListValue(inputs []string) types.List {
 		inputs,
 	)
 	return ret
+}
+
+// 定义一个泛型函数，接受任何类型的指针并返回其值
+func GetValue[T any](ptr *T) T {
+	if ptr != nil {
+		return *ptr // 解引用指针以获取值
+	}
+	var zero T // 如果指针为nil，则返回类型的零值
+	return zero
 }

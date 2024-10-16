@@ -588,6 +588,8 @@ github.com/securego/gosec/v2 v2.21.2 h1:deZp5zmYf3TWwU7A7cR2+SolbTpZ3HQiwFqnzQyE
 github.com/securego/gosec/v2 v2.21.2/go.mod h1:au33kg78rNseF5PwPnTWhuYBFf534bvJRvOrgZ/bFzU=
 github.com/sergi/go-diff v1.3.2-0.20230802210424-5b0b94c5c0d3 h1:n661drycOFuPLCN3Uc8sB6B/s6Z4t2xvBgU1htSHuq8=
 github.com/sergi/go-diff v1.3.2-0.20230802210424-5b0b94c5c0d3/go.mod h1:A0bzQcvG0E7Rwjx0REVgAGH58e96+X0MeOfepqsbeW4=
+github.com/serialt/tea v0.0.0-20240411135244-9581ec6c5d62 h1:hrtSvwBN6Cy2hM3ejK/wxVmapx4PLO6PeyIu1JA8ri4=
+github.com/serialt/tea v0.0.0-20240411135244-9581ec6c5d62/go.mod h1:P8gPoY2CaxgZamjM/fcF3m+k89f4qYYNcWzPafIx2VI=
 github.com/shazow/go-diff v0.0.0-20160112020656-b6b7b6733b8c h1:W65qqJCIOVP4jpqPQ0YvHYKwcMEMVWIzWC5iNQQfBTU=
 github.com/shazow/go-diff v0.0.0-20160112020656-b6b7b6733b8c/go.mod h1:/PevMnwAxekIXwN8qQyfc5gl2NlkB3CQlkizAbOkeBs=
 github.com/shopspring/decimal v1.2.0/go.mod h1:DKyhrW/HYNuLGql+MJL6WCR6knT2jwCFRcu2hWCYk4o=

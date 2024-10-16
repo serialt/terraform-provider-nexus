@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -10,11 +9,11 @@ import (
 	"github.com/nduyphuong/go-nexus-client/nexus3"
 )
 
-var _ datasource.DataSource = &RepositoryAptHostedDatasource{}
+// var _ datasource.DataSource = &RepositoryAptHostedDatasource{}
 
-func NewRepositoryAptHostedDatasource() datasource.DataSource {
-	return &RepositoryAptHostedDatasource{}
-}
+// func NewRepositoryAptHostedDatasource() datasource.DataSource {
+// 	return &RepositoryAptHostedDatasource{}
+// }
 
 type RepositoryAptHostedDatasource struct {
 	client *nexus3.NexusClient
@@ -33,7 +32,7 @@ type RepositoryAptHostedSourceModel struct {
 	SoftQuota             *SoftQuotaModel `tfsdk:"soft_quota"`
 }
 type CleanupModel struct {
-	PolicyNames types.List `tfsdk:"policy_names"`
+	PolicyNames []types.String `tfsdk:"policy_names"`
 }
 
 type ComponentModel struct {
@@ -162,27 +161,27 @@ func (d *RepositoryAptHostedDatasource) Schema(ctx context.Context, req datasour
 	}
 }
 
-func (d *RepositoryAptHostedDatasource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
-	if req.ProviderData == nil {
-		return
-	}
-	client, ok := req.ProviderData.(*nexus3.NexusClient)
-	if !ok {
-		resp.Diagnostics.AddError(
-			"Unexpected Data Source Configure Type",
-			fmt.Sprintf("Expected *nexus3.NexusClient, got: %T. Please report this issue to the provider developers.", req.ProviderData),
-		)
-		return
-	}
-	d.client = client
-}
+// func (d *RepositoryAptHostedDatasource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+// 	if req.ProviderData == nil {
+// 		return
+// 	}
+// 	client, ok := req.ProviderData.(*nexus3.NexusClient)
+// 	if !ok {
+// 		resp.Diagnostics.AddError(
+// 			"Unexpected Data Source Configure Type",
+// 			fmt.Sprintf("Expected *nexus3.NexusClient, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+// 		)
+// 		return
+// 	}
+// 	d.client = client
+// }
 
-func (d *RepositoryAptHostedDatasource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+// func (d *RepositoryAptHostedDatasource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 
-	// var state, newState RepositoryAptHostedSourceModel
+// 	// var state, newState RepositoryAptHostedSourceModel
 
-	// tflog.Trace(ctx, "read a RepositoryAptHosted data source")
-	// resp.Diagnostics.Append(resp.State.Set(ctx, &newState)...)
-}
+// 	// tflog.Trace(ctx, "read a RepositoryAptHosted data source")
+// 	// resp.Diagnostics.Append(resp.State.Set(ctx, &newState)...)
+// }
 
-func (d *RepositoryAptHostedDatasource) getState(name string)
+// func (d *RepositoryAptHostedDatasource) getState(name string)

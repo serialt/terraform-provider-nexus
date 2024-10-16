@@ -13,6 +13,7 @@ import (
 	"github.com/nduyphuong/go-nexus-client/nexus3"
 	"github.com/nduyphuong/go-nexus-client/nexus3/pkg/client"
 	"github.com/serialt/terraform-provider-nexus/internal/blobstore"
+	"github.com/serialt/terraform-provider-nexus/internal/repository"
 )
 
 var _ provider.Provider = &NexusProvider{}
@@ -105,6 +106,7 @@ func (p *NexusProvider) DataSources(ctx context.Context) []func() datasource.Dat
 		blobstore.NewBlobStoreFileSource,
 		blobstore.NewBlobStoreListSource,
 		blobstore.NewBlobStoreGroupSource,
+		repository.NewRepositoryAptProxyDatasource,
 		// blobstore.NewBlobStoreFileSource,
 	}
 }
