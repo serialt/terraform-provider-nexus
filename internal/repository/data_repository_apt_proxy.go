@@ -23,11 +23,11 @@ type RepositoryAptProxyDatasource struct {
 }
 
 type RepositoryAptProxySourceModel struct {
-	Id      types.String  `tfsdk:"id"`
-	Name    types.String  `tfsdk:"name"`
-	Online  types.Bool    `tfsdk:"online"`
-	Flat    types.Bool    `tfsdk:"flat"`
-	Cleanup *CleanupModel `tfsdk:"cleanup"`
+	Id      types.String    `tfsdk:"id"`
+	Name    types.String    `tfsdk:"name"`
+	Online  types.Bool      `tfsdk:"online"`
+	Flat    types.Bool      `tfsdk:"flat"`
+	Cleanup []*CleanupModel `tfsdk:"cleanup"`
 
 	Storage      *StorageDataSourceModel `tfsdk:"storage"`
 	Distribution types.String            `tfsdk:"distribution"`
@@ -107,16 +107,18 @@ func (d *RepositoryAptProxyDatasource) Schema(ctx context.Context, req datasourc
 				MarkdownDescription: "Distribution to fetch",
 				Computed:            true,
 			},
-			"cleanup": schema.SingleNestedAttribute{
+			"cleanup": schema.ListNestedAttribute{
 				MarkdownDescription: "Cleanup policies",
 				Description:         "Cleanup policies",
 				Computed:            true,
-				Attributes: map[string]schema.Attribute{
-					"policy_names": schema.SetAttribute{
-						Description:         "List of policy names",
-						MarkdownDescription: "List of policy names",
-						Computed:            true,
-						ElementType:         types.StringType,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"policy_names": schema.ListAttribute{
+							Description:         "List of policy names",
+							MarkdownDescription: "List of policy names",
+							Computed:            true,
+							ElementType:         types.StringType,
+						},
 					},
 				},
 			},
@@ -348,19 +350,19 @@ func (d *RepositoryAptProxyDatasource) getState(name string) (data RepositoryApt
 			Blocked:        types.BoolValue(repo.HTTPClient.Blocked),
 			Authentication: &HttpClientAuthenticationModel{},
 		},
-		Cleanup: &CleanupModel{
-			PolicyNames: []types.String{types.StringValue("")},
-		},
+		// Cleanup: &CleanupModel{
+		// 	PolicyNames: []types.String{types.StringValue("")},
+		// },
 	}
-	if repo.Cleanup != nil {
-		var plicyNames []types.String
-		for _, item := range repo.Cleanup.PolicyNames {
-			plicyNames = append(plicyNames, types.StringValue(item))
-		}
-		data.Cleanup = &CleanupModel{
-			PolicyNames: plicyNames,
-		}
-	}
+	// if repo.Cleanup != nil {
+	// 	var plicyNames []types.String
+	// 	for _, item := range repo.Cleanup.PolicyNames {
+	// 		plicyNames = append(plicyNames, types.StringValue(item))
+	// 	}
+	// data.Cleanup = &CleanupModel{
+	// 	PolicyNames: plicyNames,
+	// }
+	// }
 
 	if repo.HTTPClient.Authentication != nil {
 		data.HttpClient = &HttpClientModel{

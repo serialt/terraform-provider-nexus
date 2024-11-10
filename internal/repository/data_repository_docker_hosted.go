@@ -2,68 +2,48 @@ package repository
 
 import (
 	"context"
-	"errors"
-	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/nduyphuong/go-nexus-client/nexus3"
 )
 
-// var _ datasource.DataSource = &RepositoryAptHostedDatasource{}
+// var _ datasource.DataSource = &RepositoryDockerHostedDatasource{}
 
-// func NewRepositoryAptHostedDatasource() datasource.DataSource {
-// 	return &RepositoryAptHostedDatasource{}
+// func NewRepositoryDockerHostedDatasource() datasource.DataSource {
+// 	return &RepositoryDockerHostedDatasource{}
 // }
 
-type RepositoryAptHostedDatasource struct {
+type RepositoryDockerHostedDatasource struct {
 	client *nexus3.NexusClient
 }
 
-type RepositoryAptHostedSourceModel struct {
-	Id           types.String            `tfsdk:"id"`
-	Name         types.String            `tfsdk:"name"`
-	Online       types.Bool              `tfsdk:"online"`
-	Cleanup      []*CleanupModel         `tfsdk:"cleanup"`
-	Component    []*ComponentModel       `tfsdk:"component"`
-	Storage      *StorageDataSourceModel `tfsdk:"storage"`
-	Distribution types.String            `tfsdk:"distribution"`
-	Signing      *SigningModel           `tfsdk:"signing"`
-}
-type CleanupModel struct {
-	PolicyNames []types.String `tfsdk:"policy_names"`
+type RepositoryDockerHostedSourceModel struct {
+	Id        types.String            `tfsdk:"id"`
+	Name      types.String            `tfsdk:"name"`
+	Online    types.Bool              `tfsdk:"online"`
+	Cleanup   CleanupModel            `tfsdk:"cleanup"`
+	Component ComponentModel          `tfsdk:"component"`
+	Storage   *StorageDataSourceModel `tfsdk:"storage"`
 }
 
-type ComponentModel struct {
-	ProprietaryComponents types.Bool `tfsdk:"proprietary_components"`
+type DockerModel struct {
+	ForceBasicAuth types.Bool   `tfsdk:"force_basic_auth"`
+	HttpPort       types.Int64  `tfsdk:"http_port"`
+	HttpsPort      types.Int64  `tfsdk:"https_port"`
+	V1Enabled      types.Bool   `tfsdk:"v1_enabled"`
+	Subdomain      types.String `tfsdk:"subdomain"`
 }
 
-type StorageModel struct {
-	BlobStoreName               types.String `tfsdk:"blob_store_name"`
-	StrictContentTypeValidation types.Bool   `tfsdk:"strict_content_type_validation"`
-	WritePolicy                 types.String `tfsdk:"write_policy"`
+func (d *RepositoryDockerHostedDatasource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_repository_docker_hosted"
 }
 
-type SoftQuotaModel struct {
-	Limit types.Int64  `tfsdk:"limit"`
-	Type  types.String `tfsdk:"type"`
-}
-
-type SigningModel struct {
-	Keypair    []types.String `tfsdk:"keypair"`
-	Passphrase []types.String `tfsdk:"passphrase"`
-}
-
-func (d *RepositoryAptHostedDatasource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_repository_apt_hosted"
-}
-
-func (d *RepositoryAptHostedDatasource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+func (d *RepositoryDockerHostedDatasource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description:         "Use this data source to get an existing apt repository.",
-		MarkdownDescription: "Use this data source to get an existing apt repository.",
+		Description:         "Use this data source to get an existing docker repository.",
+		MarkdownDescription: "Use this data source to get an existing docker repository.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Description:         "Used to identify data source at nexus",
@@ -71,8 +51,8 @@ func (d *RepositoryAptHostedDatasource) Schema(ctx context.Context, req datasour
 				Computed:            true,
 			},
 			"name": schema.StringAttribute{
-				Description:         "Repository name",
-				MarkdownDescription: "Repository name",
+				Description:         "A unique identifier for this repository",
+				MarkdownDescription: "A unique identifier for this repository",
 				Required:            true,
 			},
 			"online": schema.BoolAttribute{
@@ -125,6 +105,11 @@ func (d *RepositoryAptHostedDatasource) Schema(ctx context.Context, req datasour
 						MarkdownDescription: "Controls if deployments of and updates to assets are allowed",
 						Computed:            true,
 					},
+					"latest_policy": schema.BoolAttribute{
+						Description:         "Whether to allow redeploying the 'latest' tag but defer to the Deployment Policy for all other tags. Only usable with write_policy \"ALLOW_ONCE\"",
+						MarkdownDescription: "Whether to allow redeploying the 'latest' tag but defer to the Deployment Policy for all other tags. Only usable with write_policy \"ALLOW_ONCE\"",
+						Computed:            true,
+					},
 				},
 			},
 			"distribution": schema.StringAttribute{
@@ -167,78 +152,27 @@ func (d *RepositoryAptHostedDatasource) Schema(ctx context.Context, req datasour
 	}
 }
 
-func (d *RepositoryAptHostedDatasource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
-	if req.ProviderData == nil {
-		return
-	}
-	client, ok := req.ProviderData.(*nexus3.NexusClient)
-	if !ok {
-		resp.Diagnostics.AddError(
-			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *nexus3.NexusClient, got: %T. Please report this issue to the provider developers.", req.ProviderData),
-		)
-		return
-	}
-	d.client = client
-}
+// func (d *RepositoryDockerHostedDatasource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+// 	if req.ProviderData == nil {
+// 		return
+// 	}
+// 	client, ok := req.ProviderData.(*nexus3.NexusClient)
+// 	if !ok {
+// 		resp.Diagnostics.AddError(
+// 			"Unexpected Data Source Configure Type",
+// 			fmt.Sprintf("Expected *nexus3.NexusClient, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+// 		)
+// 		return
+// 	}
+// 	d.client = client
+// }
 
-func (d *RepositoryAptHostedDatasource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+// func (d *RepositoryDockerHostedDatasource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 
-	var state RepositoryAptHostedSourceModel
+// 	// var state, newState RepositoryDockerHostedSourceModel
 
-	resp.Diagnostics.Append(req.Config.Get(ctx, &state)...)
+// 	// tflog.Trace(ctx, "read a RepositoryDockerHosted data source")
+// 	// resp.Diagnostics.Append(resp.State.Set(ctx, &newState)...)
+// }
 
-	if resp.Diagnostics.HasError() {
-		return
-	}
-	if state.Name.IsUnknown() {
-		resp.Diagnostics.AddError("Get apt hosted datasource failed", "name is unknown")
-	}
-	state, err := d.getState(state.Name.ValueString())
-	if err != nil {
-		resp.Diagnostics.AddError("Get apt hosted datasource failed", err.Error())
-	}
-	tflog.Trace(ctx, "read a apt hosted data source")
-	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
-}
-
-func (d *RepositoryAptHostedDatasource) getState(name string) (data RepositoryAptHostedSourceModel, err error) {
-	if name == "" {
-		err = errors.New("name is nil")
-		return
-	}
-
-	repo, err := d.client.Repository.Apt.Hosted.Get(name)
-	if err != nil {
-		return
-	}
-
-	data = RepositoryAptHostedSourceModel{
-		Id:     types.StringValue(repo.Name),
-		Name:   types.StringValue(repo.Name),
-		Online: types.BoolValue(repo.Online),
-		Storage: &StorageDataSourceModel{
-			BlobStoreName:               types.StringValue(repo.Storage.BlobStoreName),
-			StrictContentTypeValidation: types.BoolValue(repo.Storage.StrictContentTypeValidation),
-		},
-		Distribution: types.StringValue(repo.Apt.Distribution),
-		Component: []*ComponentModel{{
-			ProprietaryComponents: types.BoolValue(repo.Component.ProprietaryComponents),
-		}},
-		Signing: &SigningModel{
-			Keypair:    []types.String{types.StringValue(repo.AptSigning.Keypair)},
-			Passphrase: []types.String{types.StringValue(GetValue(repo.AptSigning.Passphrase))},
-		},
-	}
-	if repo.Cleanup != nil {
-		var plicyNames []types.String
-		for _, item := range repo.Cleanup.PolicyNames {
-			plicyNames = append(plicyNames, types.StringValue(item))
-		}
-		data.Cleanup = []*CleanupModel{{
-			PolicyNames: plicyNames,
-		}}
-	}
-
-	return
-}
+// func (d *RepositoryDockerHostedDatasource) getState(name string)
