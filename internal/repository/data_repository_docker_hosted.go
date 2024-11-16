@@ -2,10 +2,13 @@ package repository
 
 import (
 	"context"
+	"errors"
+	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/nduyphuong/go-nexus-client/nexus3"
 )
 
@@ -152,27 +155,72 @@ func (d *RepositoryDockerHostedDatasource) Schema(ctx context.Context, req datas
 	}
 }
 
-// func (d *RepositoryDockerHostedDatasource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
-// 	if req.ProviderData == nil {
-// 		return
-// 	}
-// 	client, ok := req.ProviderData.(*nexus3.NexusClient)
-// 	if !ok {
-// 		resp.Diagnostics.AddError(
-// 			"Unexpected Data Source Configure Type",
-// 			fmt.Sprintf("Expected *nexus3.NexusClient, got: %T. Please report this issue to the provider developers.", req.ProviderData),
-// 		)
-// 		return
-// 	}
-// 	d.client = client
-// }
+func (d *RepositoryDockerHostedDatasource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+	if req.ProviderData == nil {
+		return
+	}
+	client, ok := req.ProviderData.(*nexus3.NexusClient)
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Data Source Configure Type",
+			fmt.Sprintf("Expected *nexus3.NexusClient, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+		)
+		return
+	}
+	d.client = client
+}
 
-// func (d *RepositoryDockerHostedDatasource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+func (d *RepositoryDockerHostedDatasource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 
-// 	// var state, newState RepositoryDockerHostedSourceModel
+	var state RepositoryDockerHostedSourceModel
 
-// 	// tflog.Trace(ctx, "read a RepositoryDockerHosted data source")
-// 	// resp.Diagnostics.Append(resp.State.Set(ctx, &newState)...)
-// }
+	resp.Diagnostics.Append(req.Config.Get(ctx, &state)...)
 
-// func (d *RepositoryDockerHostedDatasource) getState(name string)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	if state.Name.IsUnknown() {
+		resp.Diagnostics.AddError("Get docker hosted datasource failed", "name is unknown")
+	}
+	state, err := d.getState(state.Name.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError("Get docker hosted datasource failed", err.Error())
+	}
+	tflog.Trace(ctx, "read a docker hosted data source")
+	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+}
+
+func (d *RepositoryDockerHostedDatasource) getState(name string) (data RepositoryDockerHostedSourceModel, err error) {
+
+	if name == "" {
+		err = errors.New("name is nil")
+		return
+	}
+
+	repo, err := d.client.Repository.Docker.Hosted.Get(name)
+	if err != nil {
+		return
+	}
+	data = RepositoryDockerHostedSourceModel{
+		Id:     types.StringValue(repo.Name),
+		Name:   types.StringValue(repo.Name),
+		Online: types.BoolValue(repo.Online),
+		Storage: &StorageDataSourceModel{
+			BlobStoreName:               types.StringValue(repo.Storage.BlobStoreName),
+			StrictContentTypeValidation: types.BoolValue(repo.Storage.StrictContentTypeValidation),
+		},
+		Component: ComponentModel{
+			ProprietaryComponents: types.BoolValue(repo.Component.ProprietaryComponents),
+		},
+	}
+	if repo.Cleanup != nil {
+		var plicyNames []types.String
+		for _, item := range repo.Cleanup.PolicyNames {
+			plicyNames = append(plicyNames, types.StringValue(item))
+		}
+		data.Cleanup = CleanupModel{
+			PolicyNames: plicyNames,
+		}
+	}
+	return
+}
