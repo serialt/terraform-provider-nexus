@@ -73,3 +73,6 @@ docs:
 	go generate ./...
 
 .PHONY: build start-services stop-services test testacc fmt fmtcheck lint tools docs
+
+install: 
+    go install -v ./...

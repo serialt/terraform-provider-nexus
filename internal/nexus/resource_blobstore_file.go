@@ -1,4 +1,4 @@
-package blobstore
+package nexus
 
 import (
 	"context"
@@ -12,21 +12,13 @@ import (
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/nduyphuong/go-nexus-client/nexus3"
 	"github.com/nduyphuong/go-nexus-client/nexus3/schema/blobstore"
+	"github.com/serialt/terraform-provider-nexus/internal/model"
+	"github.com/serialt/terraform-provider-nexus/internal/tschema"
 )
 
 // ResourceBlobstoreFile defines the resource implementation.
 type ResourceBlobstoreFile struct {
 	client *nexus3.NexusClient
-}
-
-type BlobStoreFileReourceModel struct {
-	Id                    types.String    `tfsdk:"id"`
-	Name                  types.String    `tfsdk:"name"`
-	Path                  types.String    `tfsdk:"path"`
-	BlobCount             types.Int64     `tfsdk:"blob_count"`
-	AvailableSpaceInBytes types.Int64     `tfsdk:"available_space_in_bytes"`
-	TotalSizeInBytes      types.Int64     `tfsdk:"total_size_in_bytes"`
-	SoftQuota             *SoftQuotaModel `tfsdk:"soft_quota"`
 }
 
 // Ensure provider defined types fully satisfy framework interfaces.
@@ -46,7 +38,9 @@ func (r *ResourceBlobstoreFile) Metadata(ctx context.Context, req resource.Metad
 func (r *ResourceBlobstoreFile) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Example resource source",
-
+		Blocks: map[string]schema.Block{
+			"soft_quota": tschema.RsoftQuota,
+		},
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Description: "Used to identify data source at nexus",
@@ -73,23 +67,6 @@ func (r *ResourceBlobstoreFile) Schema(ctx context.Context, req resource.SchemaR
 				Computed:    true,
 				Description: "Count of blobs",
 			},
-			"soft_quota": schema.SingleNestedAttribute{
-				MarkdownDescription: "Soft quota of the blobstore",
-				Optional:            true,
-				// Computed:            true,
-				Attributes: map[string]schema.Attribute{
-					"limit": schema.Int64Attribute{
-						Description: "The limit in Bytes. Minimum value is 1000000",
-						Optional:    true,
-						// Computed:    true,
-					},
-					"type": schema.StringAttribute{
-						Description: "The type to use such as spaceRemainingQuota, or spaceUsedQuota",
-						Optional:    true,
-						// Computed:    true,
-					},
-				},
-			},
 		},
 	}
 }
@@ -111,7 +88,7 @@ func (r *ResourceBlobstoreFile) Configure(ctx context.Context, req resource.Conf
 func (r *ResourceBlobstoreFile) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 
 	tflog.Debug(ctx, "Create BlobStore File resource")
-	var plan BlobStoreFileReourceModel
+	var plan model.BlobStoreFileModel
 
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
@@ -137,36 +114,15 @@ func (r *ResourceBlobstoreFile) Create(ctx context.Context, req resource.CreateR
 		resp.Diagnostics.AddError("Get projects msg from harbor failed", err.Error())
 		return
 	}
-
-	blobStoreFile, err := r.client.BlobStore.File.Get(plan.Name.ValueString())
+	fmt.Println(plan.Name.ValueString())
+	state, err := BlobstoreFileGetState(r.client, plan.Name.ValueString())
 	if err != nil {
-		resp.Diagnostics.AddError("Get projects msg from harbor failed", err.Error())
+		resp.Diagnostics.AddError("Get blob file from nexus failed", err.Error())
 		return
 	}
+	tflog.Debug(ctx, "created a resource of blob file")
 
-	var genericBlobstoreInformation blobstore.Generic
-	genericBlobstores, err := r.client.BlobStore.List()
-	if err != nil {
-		resp.Diagnostics.AddError("Get projects msg from harbor failed", err.Error())
-		return
-	}
-	for _, generic := range genericBlobstores {
-		if generic.Name == blobStoreFile.Name {
-			genericBlobstoreInformation = generic
-		}
-	}
-
-	plan.Id = types.StringValue(blobStoreFile.Name)
-	plan.Path = types.StringValue(bFile.Path)
-	plan.AvailableSpaceInBytes = types.Int64Value(int64(genericBlobstoreInformation.AvailableSpaceInBytes))
-	plan.TotalSizeInBytes = types.Int64Value(int64(genericBlobstoreInformation.TotalSizeInBytes))
-	plan.BlobCount = types.Int64Value(int64(genericBlobstoreInformation.BlobCount))
-
-	tflog.Trace(ctx, "read a blobStoreFile data source")
-
-	tflog.Debug(ctx, "created a resource")
-
-	diags := resp.State.Set(ctx, plan)
+	diags := resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -174,16 +130,16 @@ func (r *ResourceBlobstoreFile) Create(ctx context.Context, req resource.CreateR
 }
 
 func (r *ResourceBlobstoreFile) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var state BlobStoreFileReourceModel
+	var state model.BlobStoreFileModel
 
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	state, err := r.getState(state.Id.ValueString())
+	state, err := BlobstoreFileGetState(r.client, state.Id.String())
 	if err != nil {
-		resp.Diagnostics.AddError("Get blob file data msg from nexus failed", err.Error())
+		resp.Diagnostics.AddError("Get blob file data from nexus failed", err.Error())
 		return
 
 	}
@@ -194,7 +150,7 @@ func (r *ResourceBlobstoreFile) Read(ctx context.Context, req resource.ReadReque
 }
 
 func (r *ResourceBlobstoreFile) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var plan BlobStoreFileReourceModel
+	var plan model.BlobStoreFileModel
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -206,16 +162,22 @@ func (r *ResourceBlobstoreFile) Update(ctx context.Context, req resource.UpdateR
 		bPath = plan.Path.ValueString()
 	}
 
-	bFile := blobstore.File{
-		Path: bPath,
+	item, err := r.client.BlobStore.File.Get(plan.Name.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError("Get blob file data from nexus failed", err.Error())
+		return
 	}
+	item.Path = bPath
+
 	if plan.SoftQuota != nil {
-		bFile.SoftQuota = &blobstore.SoftQuota{
+		item.SoftQuota = &blobstore.SoftQuota{
 			Type:  plan.SoftQuota.Type.ValueString(),
 			Limit: plan.SoftQuota.Limit.ValueInt64() * 1024 * 1024,
 		}
 	}
-	err := r.client.BlobStore.File.Update(plan.Id.ValueString(), &bFile)
+	fmt.Println(plan.Id.ValueString())
+
+	err = r.client.BlobStore.File.Update(plan.Name.ValueString(), item)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Updating blobstore file",
@@ -224,7 +186,7 @@ func (r *ResourceBlobstoreFile) Update(ctx context.Context, req resource.UpdateR
 		return
 	}
 
-	plan, err = r.getState(plan.Id.ValueString())
+	plan, err = BlobstoreFileGetState(r.client, plan.Name.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Get blob file data msg from nexus failed", err.Error())
 		return
@@ -235,7 +197,7 @@ func (r *ResourceBlobstoreFile) Update(ctx context.Context, req resource.UpdateR
 }
 
 func (r *ResourceBlobstoreFile) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var state BlobStoreFileReourceModel
+	var state model.BlobStoreFileModel
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -255,18 +217,18 @@ func (r *ResourceBlobstoreFile) ImportState(ctx context.Context, req resource.Im
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
 
-func (r *ResourceBlobstoreFile) getState(name string) (data BlobStoreFileReourceModel, err error) {
+func BlobstoreFileGetState(client *nexus3.NexusClient, name string) (data model.BlobStoreFileModel, err error) {
 	if name == "" {
 		err = errors.New("name is nil")
 		return
 	}
-	blobStoreFile, err := r.client.BlobStore.File.Get(name)
+	blobStoreFile, err := client.BlobStore.File.Get(name)
 	if err != nil {
 		return
 	}
 
 	var genericBlobstoreInformation blobstore.Generic
-	genericBlobstores, err := r.client.BlobStore.List()
+	genericBlobstores, err := client.BlobStore.List()
 	if err != nil {
 		return
 	}
@@ -276,7 +238,7 @@ func (r *ResourceBlobstoreFile) getState(name string) (data BlobStoreFileReource
 		}
 	}
 
-	data = BlobStoreFileReourceModel{
+	data = model.BlobStoreFileModel{
 		Id:                    types.StringValue(blobStoreFile.Name),
 		Name:                  types.StringValue(blobStoreFile.Name),
 		Path:                  types.StringValue(blobStoreFile.Path),
@@ -285,7 +247,7 @@ func (r *ResourceBlobstoreFile) getState(name string) (data BlobStoreFileReource
 		BlobCount:             types.Int64Value(int64(genericBlobstoreInformation.BlobCount)),
 	}
 	if blobStoreFile.SoftQuota != nil {
-		data.SoftQuota = &SoftQuotaModel{
+		data.SoftQuota = &model.SoftQuotaModel{
 			Limit: types.Int64Value(blobStoreFile.SoftQuota.Limit / (1024 * 1024)),
 			Type:  types.StringValue(blobStoreFile.SoftQuota.Type),
 		}

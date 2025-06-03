@@ -1,4 +1,4 @@
-package provider
+package nexus
 
 import (
 	"context"
@@ -12,8 +12,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/nduyphuong/go-nexus-client/nexus3"
 	"github.com/nduyphuong/go-nexus-client/nexus3/pkg/client"
-	"github.com/serialt/terraform-provider-nexus/internal/blobstore"
-	"github.com/serialt/terraform-provider-nexus/internal/repository"
 )
 
 var _ provider.Provider = &NexusProvider{}
@@ -97,16 +95,16 @@ func (p *NexusProvider) Configure(ctx context.Context, req provider.ConfigureReq
 func (p *NexusProvider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		// NewExampleResource,
-		blobstore.NewResourceBlobstoreFile,
+		NewResourceBlobstoreFile,
 	}
 }
 
 func (p *NexusProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
-		blobstore.NewBlobStoreFileSource,
-		blobstore.NewBlobStoreListSource,
-		blobstore.NewBlobStoreGroupSource,
-		repository.NewRepositoryAptProxyDatasource,
+		NewBlobStoreFileSource,
+		NewBlobStoreListSource,
+		NewBlobStoreGroupSource,
+		NewRepositoryAptProxyDatasource,
 		// blobstore.NewBlobStoreFileSource,
 	}
 }

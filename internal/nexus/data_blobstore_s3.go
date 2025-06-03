@@ -1,4 +1,4 @@
-package blobstore
+package nexus
 
 import (
 	"context"
@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/nduyphuong/go-nexus-client/nexus3"
+	"github.com/serialt/terraform-provider-nexus/internal/model"
 )
 
 var _ datasource.DataSource = &BlobStoreS3Source{}
@@ -27,7 +28,7 @@ type BlobStoreS3SourceModel struct {
 	BlobCount             types.Int64               `tfsdk:"blob_count"`
 	AvailableSpaceInBytes types.Int64               `tfsdk:"available_space_in_bytes"`
 	TotalSizeInBytes      types.Int64               `tfsdk:"total_size_in_bytes"`
-	SoftQuota             *SoftQuotaModel           `tfsdk:"soft_quota"`
+	SoftQuota             *model.SoftQuotaModel     `tfsdk:"soft_quota"`
 	BucketConfiguration   *bucketConfigurationModel `tfsdk:"bucket_configuration"`
 }
 

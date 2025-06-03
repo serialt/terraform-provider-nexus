@@ -1,4 +1,4 @@
-package blobstore
+package nexus
 
 import (
 	"context"
@@ -22,7 +22,7 @@ type BlobStoreListSource struct {
 }
 
 type BlobStoreListSourceModel struct {
-	Id    types.String                    `tfsdk:"id"`
+	// Id    types.String                    `tfsdk:"id"`
 	Items []*BlobStoreListSourceItemModel `tfsdk:"items"`
 }
 
@@ -40,10 +40,10 @@ func (d *BlobStoreListSource) Schema(ctx context.Context, req datasource.SchemaR
 		MarkdownDescription: "Use this data source to get a list with all Blob Stores.",
 
 		Attributes: map[string]schema.Attribute{
-			"id": schema.StringAttribute{
-				Description: "Used to identify data source at nexus",
-				Computed:    true,
-			},
+			// "id": schema.StringAttribute{
+			// 	Description: "Used to identify data source at nexus",
+			// 	Computed:    true,
+			// },
 			"items": schema.ListNestedAttribute{
 				MarkdownDescription: "A List of all Blob Stores",
 				Computed:            true,

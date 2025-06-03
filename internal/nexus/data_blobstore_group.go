@@ -1,4 +1,4 @@
-package blobstore
+package nexus
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/nduyphuong/go-nexus-client/nexus3"
-	"github.com/nduyphuong/go-nexus-client/nexus3/schema/blobstore"
+	"github.com/serialt/terraform-provider-nexus/internal/model"
 )
 
 var _ datasource.DataSource = &BlobStoreGroupSource{}
@@ -20,17 +20,6 @@ func NewBlobStoreGroupSource() datasource.DataSource {
 
 type BlobStoreGroupSource struct {
 	client *nexus3.NexusClient
-}
-
-type BlobStoreGroupSourceModel struct {
-	Id                    types.String    `tfsdk:"id"`
-	Name                  types.String    `tfsdk:"name"`
-	AvailableSpaceInBytes types.Int64     `tfsdk:"available_space_in_bytes"`
-	BlobCount             types.Int64     `tfsdk:"blob_count"`
-	FillPolicy            types.String    `tfsdk:"fill_policy"`
-	Members               []types.String  `tfsdk:"members"`
-	TotalSizeInBytes      types.Int64     `tfsdk:"total_size_in_bytes"`
-	SoftQuota             *SoftQuotaModel `tfsdk:"soft_quota"`
 }
 
 func (d *BlobStoreGroupSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -108,49 +97,16 @@ func (d *BlobStoreGroupSource) Configure(ctx context.Context, req datasource.Con
 
 func (d *BlobStoreGroupSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 
-	var state, newState BlobStoreGroupSourceModel
+	var state, newState model.BlobStoreGroupModel
 	resp.Diagnostics.Append(req.Config.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	bs, err := d.client.BlobStore.Group.Get(state.Name.ValueString())
+
+	newState, err := BlobstoreGroupGetState(d.client, state.Name.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Get blobStore group failed", err.Error())
 		return
-	}
-	if bs == nil {
-		resp.Diagnostics.AddError("Get blobStore group failed", "group is nil")
-		return
-	}
-
-	var genericBlobstoreInformation blobstore.Generic
-	genericBlobstores, err := d.client.BlobStore.List()
-	if err != nil {
-		resp.Diagnostics.AddError("Get blobStore list failed", err.Error())
-		return
-	}
-	for _, generic := range genericBlobstores {
-		if generic.Name == bs.Name {
-			genericBlobstoreInformation = generic
-		}
-	}
-
-	members := []types.String{}
-	for _, member := range bs.Members {
-		members = append(members, types.StringValue(member))
-	}
-	newState = BlobStoreGroupSourceModel{
-		Id:                    types.StringValue(bs.Name),
-		Name:                  types.StringValue(bs.Name),
-		AvailableSpaceInBytes: types.Int64Value(int64(genericBlobstoreInformation.AvailableSpaceInBytes)),
-		BlobCount:             types.Int64Value(int64(genericBlobstoreInformation.BlobCount)),
-		FillPolicy:            types.StringValue(bs.FillPolicy),
-		Members:               members,
-		TotalSizeInBytes:      types.Int64Value(int64(genericBlobstoreInformation.TotalSizeInBytes)),
-		SoftQuota: &SoftQuotaModel{
-			Limit: types.Int64Value(bs.SoftQuota.Limit),
-			Type:  types.StringValue(bs.SoftQuota.Type),
-		},
 	}
 
 	tflog.Trace(ctx, "read a BlobStoreGroup data source")
