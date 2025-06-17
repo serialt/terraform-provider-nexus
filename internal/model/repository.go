@@ -39,6 +39,9 @@ type ProxyModel struct {
 	MetadataMaxAge types.Int64  `tfsdk:"metadata_max_age"`
 	RemoteURL      types.String `tfsdk:"remote_url"`
 }
+type GroupModel struct {
+	MemberNames []types.String `tfsdk:"member_names"`
+}
 type HttpClientAuthenticationModel struct {
 	NtlmDomain types.String `tfsdk:"ntlm_domain"`
 	NtlmHost   types.String `tfsdk:"ntlm_host"`
@@ -126,6 +129,38 @@ type RepositoryDockerGroupModel struct {
 	NegativeCache *NegativeCache   `tfsdk:"negative_cache"`
 	Proxy         *ProxyModel      `tfsdk:"proxy"`
 	Component     *ComponentModel  `tfsdk:"component"`
+	RoutingRule   types.String     `tfsdk:"routing_rule"`
+	Storage       *StorageModel    `tfsdk:"storage"`
+}
+
+type RepositoryGoProxyModel struct {
+	Id            types.String     `tfsdk:"id"`
+	Name          types.String     `tfsdk:"name"`
+	Online        types.Bool       `tfsdk:"online"`
+	Cleanup       *CleanupModel    `tfsdk:"cleanup"`
+	HttpClient    *HttpClientModel `tfsdk:"http_client"`
+	NegativeCache *NegativeCache   `tfsdk:"negative_cache"`
+	Proxy         *ProxyModel      `tfsdk:"proxy"`
+	RoutingRule   types.String     `tfsdk:"routing_rule"`
+	Storage       *StorageModel    `tfsdk:"storage"`
+}
+
+type RepositoryGoGroupModel struct {
+	Id      types.String  `tfsdk:"id"`
+	Name    types.String  `tfsdk:"name"`
+	Online  types.Bool    `tfsdk:"online"`
+	Storage *StorageModel `tfsdk:"storage"`
+	Group   *GroupModel   `tfsdk:"group"`
+}
+
+type RepositoryHelmProxyModel struct {
+	Id            types.String     `tfsdk:"id"`
+	Name          types.String     `tfsdk:"name"`
+	Online        types.Bool       `tfsdk:"online"`
+	Cleanup       *CleanupModel    `tfsdk:"cleanup"`
+	HttpClient    *HttpClientModel `tfsdk:"http_client"`
+	NegativeCache *NegativeCache   `tfsdk:"negative_cache"`
+	Proxy         *ProxyModel      `tfsdk:"proxy"`
 	RoutingRule   types.String     `tfsdk:"routing_rule"`
 	Storage       *StorageModel    `tfsdk:"storage"`
 }

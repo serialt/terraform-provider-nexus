@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
-func TestDatasourceBlobStoreFile(t *testing.T) {
+func TestDatasource_BlobStoreFile(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: TestNexusProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
