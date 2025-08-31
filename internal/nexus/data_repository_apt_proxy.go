@@ -5,11 +5,11 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/datadrivers/go-nexus-client/nexus3"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"github.com/nduyphuong/go-nexus-client/nexus3"
 	"github.com/serialt/terraform-provider-nexus/internal/model"
 	"github.com/serialt/terraform-provider-nexus/internal/tschema"
 )

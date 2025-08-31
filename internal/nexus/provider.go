@@ -4,14 +4,14 @@ import (
 	"context"
 	"os"
 
+	"github.com/datadrivers/go-nexus-client/nexus3"
+	"github.com/datadrivers/go-nexus-client/nexus3/pkg/client"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/function"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/nduyphuong/go-nexus-client/nexus3"
-	"github.com/nduyphuong/go-nexus-client/nexus3/pkg/client"
 )
 
 var _ provider.Provider = &NexusProvider{}
