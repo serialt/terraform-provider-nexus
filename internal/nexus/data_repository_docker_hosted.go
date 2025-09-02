@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/datadrivers/go-nexus-client/nexus3"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -35,30 +36,13 @@ func (d *RepositoryDockerHostedDatasource) Schema(ctx context.Context, req datas
 		Blocks: map[string]schema.Block{
 			"cleanup":   tschema.DSCleanUp,
 			"component": tschema.DSComponent,
-			"storage":   tschema.DSStorageV2,
-			"signing":   tschema.DSSigning,
+			"storage":   tschema.DSDockerHostedStorage,
+			"docker":    tschema.DSDocker,
 		},
 		Attributes: map[string]schema.Attribute{
-			"id": schema.StringAttribute{
-				Description:         "Used to identify data source at nexus",
-				MarkdownDescription: "Used to identify data source at nexus",
-				Computed:            true,
-			},
-			"name": schema.StringAttribute{
-				Description:         "A unique identifier for this repository",
-				MarkdownDescription: "A unique identifier for this repository",
-				Required:            true,
-			},
-			"online": schema.BoolAttribute{
-				Description:         "Whether this repository accepts incoming requests",
-				MarkdownDescription: "Whether this repository accepts incoming requests",
-				Computed:            true,
-			},
-			"distribution": schema.StringAttribute{
-				Description:         "Distribution to fetch",
-				MarkdownDescription: "Distribution to fetch",
-				Computed:            true,
-			},
+			"id":     tschema.ResourceID,
+			"name":   tschema.DataSourceName,
+			"online": tschema.DataSourceOnline,
 		},
 	}
 }
@@ -113,22 +97,35 @@ func RepositoryDockerHostedGetState(client *nexus3.NexusClient, name string) (da
 		Id:     types.StringValue(repo.Name),
 		Name:   types.StringValue(repo.Name),
 		Online: types.BoolValue(repo.Online),
-		Storage: &model.StorageModelV2{
+		Storage: &model.DockerHostedStorageModel{
 			BlobStoreName:               types.StringValue(repo.Storage.BlobStoreName),
 			StrictContentTypeValidation: types.BoolValue(repo.Storage.StrictContentTypeValidation),
 			WritePolicy:                 types.StringValue(string(repo.Storage.WritePolicy)),
+			LatestPolicy:                types.BoolPointerValue(repo.Storage.LatestPolicy),
 		},
-		Component: model.ComponentModel{
+		Component: &model.ComponentModel{
 			ProprietaryComponents: types.BoolValue(repo.Component.ProprietaryComponents),
 		},
+		Docker: &model.DockerModel{
+			ForceBasicAuth: types.BoolValue(repo.Docker.ForceBasicAuth),
+			// HttpPort:       types.Int64Value(int64(GetValue(repo.Docker.HTTPPort))),
+			// HttpsPort:      types.Int64Value(int64(GetValue(repo.Docker.HTTPSPort))),
+			V1Enabled: types.BoolValue(repo.Docker.V1Enabled),
+			Subdomain: types.StringPointerValue(repo.Docker.Subdomain),
+		},
+	}
+	if repo.Docker.HTTPPort != nil {
+		data.Docker.HttpPort = types.Int64Value(int64(GetValue(repo.Docker.HTTPPort)))
+
 	}
 	if repo.Cleanup != nil {
-		var plicyNames []types.String
+		policyNames := []attr.Value{}
 		for _, item := range repo.Cleanup.PolicyNames {
-			plicyNames = append(plicyNames, types.StringValue(item))
+			policyNames = append(policyNames, types.StringValue(item))
 		}
-		data.Cleanup = model.CleanupModel{
-			PolicyNames: plicyNames,
+		policyNamesTfsdk, _ := types.ListValue(types.StringType, policyNames)
+		data.Cleanup = &model.CleanupModel{
+			PolicyNames: policyNamesTfsdk,
 		}
 	}
 	return

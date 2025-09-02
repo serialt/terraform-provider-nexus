@@ -1,0 +1,10 @@
+{
+    "go.toolsEnvVars": {
+        "TF_LOG": "DEBUG",
+        "TF_ACC": "1",
+        "SKIP_S3_TESTS": "1",
+        "NEXUS_URL": "http://nexus.local.io:8081",
+        "NEXUS_USERNAME": "admin",
+        "NEXUS_PASSWORD": "sugar"
+    },
+}

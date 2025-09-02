@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/datadrivers/go-nexus-client/nexus3"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -113,7 +114,7 @@ func (d *RepositoryAptHostedDatasource) getState(name string) (data model.Reposi
 		Id:     types.StringValue(repo.Name),
 		Name:   types.StringValue(repo.Name),
 		Online: types.BoolValue(repo.Online),
-		Storage: &model.StorageModelV2{
+		Storage: &model.HostedStorageModel{
 			BlobStoreName:               types.StringValue(repo.Storage.BlobStoreName),
 			StrictContentTypeValidation: types.BoolValue(repo.Storage.StrictContentTypeValidation),
 			WritePolicy:                 types.StringValue(string(*repo.Storage.WritePolicy)),
@@ -128,13 +129,14 @@ func (d *RepositoryAptHostedDatasource) getState(name string) (data model.Reposi
 		},
 	}
 	if repo.Cleanup != nil {
-		var plicyNames []types.String
+		policyNames := []attr.Value{}
 		for _, item := range repo.Cleanup.PolicyNames {
-			plicyNames = append(plicyNames, types.StringValue(item))
+			policyNames = append(policyNames, types.StringValue(item))
 		}
-		data.Cleanup = []*model.CleanupModel{{
-			PolicyNames: plicyNames,
-		}}
+		policyNamesTfsdk, _ := types.ListValue(types.StringType, policyNames)
+		data.Cleanup = &model.CleanupModel{
+			PolicyNames: policyNamesTfsdk,
+		}
 	}
 
 	return

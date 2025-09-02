@@ -5,7 +5,8 @@ import (
 	"fmt"
 
 	"github.com/datadrivers/go-nexus-client/nexus3"
-	"github.com/datadrivers/go-nexus-client/nexus3/schema/blobstore"
+	"github.com/datadrivers/go-nexus-client/nexus3/schema/security"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -85,35 +86,25 @@ func (r *ResourcePrivilegeApplication) Create(ctx context.Context, req resource.
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	bPath := plan.Name.ValueString()
-	if !plan.Path.IsNull() && plan.Path.ValueString() != "" {
-		bPath = plan.Path.ValueString()
+	actions := []string{}
+	_ = plan.Actions.ElementsAs(ctx, actions, true)
+	var appActions []security.SecurityPrivilegeApplicationActions
+	for _, v := range actions {
+		appActions = append(appActions, security.SecurityPrivilegeApplicationActions(v))
 	}
-
-	bFile := blobstore.File{
-		Name: plan.Name.ValueString(),
-		Path: bPath,
+	privilegeApp := security.PrivilegeApplication{
+		Name:        plan.Name.ValueString(),
+		Description: plan.Description.ValueString(),
+		Actions:     appActions,
+		Domain:      plan.Domain.ValueString(),
 	}
-	if plan.SoftQuota != nil {
-		bFile.SoftQuota = &blobstore.SoftQuota{
-			Type:  plan.SoftQuota.Type.ValueString(),
-			Limit: plan.SoftQuota.Limit.ValueInt64() * 1024 * 1024,
-		}
-	}
-	err := r.client.BlobStore.File.Create(&bFile)
+	err := r.client.Security.Privilege.Application.Create(privilegeApp)
 	if err != nil {
-		resp.Diagnostics.AddError("Get projects msg from harbor failed", err.Error())
+		resp.Diagnostics.AddError("Create Privilege failed", err.Error())
 		return
 	}
-	fmt.Println(plan.Name.ValueString())
-	state, err := BlobstoreFileGetState(r.client, plan.Name.ValueString())
-	if err != nil {
-		resp.Diagnostics.AddError("Get blob file from nexus failed", err.Error())
-		return
-	}
-	tflog.Debug(ctx, "created a resource of blob file")
 
-	diags := resp.State.Set(ctx, state)
+	diags := resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -121,83 +112,78 @@ func (r *ResourcePrivilegeApplication) Create(ctx context.Context, req resource.
 }
 
 func (r *ResourcePrivilegeApplication) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var state model.BlobStoreFileModel
+	var state model.PrivilegeApplication
 
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	state, err := BlobstoreFileGetState(r.client, state.Id.String())
+	privilege, err := r.client.Security.Privilege.Get(state.Id.String())
 	if err != nil {
-		resp.Diagnostics.AddError("Get blob file data from nexus failed", err.Error())
+		resp.Diagnostics.AddError("Get Privilege failed", err.Error())
 		return
+	}
 
+	actions := []attr.Value{}
+	for _, v := range privilege.Actions {
+		actions = append(actions, types.StringValue(v))
+	}
+	actionTfsdk, _ := types.ListValue(types.StringType, actions)
+	state = model.PrivilegeApplication{
+		Id:          types.StringValue(privilege.Name),
+		Name:        types.StringValue(privilege.Name),
+		Description: types.StringValue(privilege.Description),
+		Actions:     actionTfsdk,
+		Domain:      types.StringValue(privilege.Domain),
 	}
 
 	tflog.Trace(ctx, "read a blobStoreFile data source")
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
-
 }
 
 func (r *ResourcePrivilegeApplication) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var plan model.BlobStoreFileModel
+	var plan model.PrivilegeApplication
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	bPath := plan.Name.ValueString()
-	if !plan.Path.IsNull() && plan.Path.ValueString() != "" {
-		bPath = plan.Path.ValueString()
+	actions := []string{}
+	_ = plan.Actions.ElementsAs(ctx, actions, true)
+	var appActions []security.SecurityPrivilegeApplicationActions
+	for _, v := range actions {
+		appActions = append(appActions, security.SecurityPrivilegeApplicationActions(v))
+	}
+	privilegeApp := security.PrivilegeApplication{
+		Name:        plan.Name.ValueString(),
+		Description: plan.Description.ValueString(),
+		Actions:     appActions,
+		Domain:      plan.Domain.ValueString(),
 	}
 
-	item, err := r.client.BlobStore.File.Get(plan.Name.ValueString())
+	err := r.client.Security.Privilege.Application.Update(plan.Name.String(), privilegeApp)
 	if err != nil {
-		resp.Diagnostics.AddError("Get blob file data from nexus failed", err.Error())
-		return
-	}
-	item.Path = bPath
-
-	if plan.SoftQuota != nil {
-		item.SoftQuota = &blobstore.SoftQuota{
-			Type:  plan.SoftQuota.Type.ValueString(),
-			Limit: plan.SoftQuota.Limit.ValueInt64() * 1024 * 1024,
-		}
-	}
-	fmt.Println(plan.Id.ValueString())
-
-	err = r.client.BlobStore.File.Update(plan.Name.ValueString(), item)
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Error Updating blobstore file",
-			"Could not update, unexpected error: "+err.Error(),
-		)
+		resp.Diagnostics.AddError("update Privilege Apllication failed", err.Error())
 		return
 	}
 
-	plan, err = BlobstoreFileGetState(r.client, plan.Name.ValueString())
-	if err != nil {
-		resp.Diagnostics.AddError("Get blob file data msg from nexus failed", err.Error())
-		return
-
-	}
-	tflog.Trace(ctx, "update a blobStoreFile data source")
+	tflog.Trace(ctx, "update a Privilige application data")
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
 func (r *ResourcePrivilegeApplication) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var state model.BlobStoreFileModel
+	var state model.PrivilegeApplication
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	err := r.client.BlobStore.Delete(state.Id.ValueString())
+	err := r.client.Security.Privilege.Delete(state.Id.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error Deleting blobstore file",
+			"Error Deleting Privilege application",
 			"Could not delete, unexpected error: "+err.Error(),
 		)
 		return

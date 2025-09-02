@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/datadrivers/go-nexus-client/nexus3"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -128,12 +129,13 @@ func (d *RepositoryDockerProxyDatasource) getState(name string) (data model.Repo
 		},
 	}
 	if repo.Cleanup != nil {
-		var plicyNames []types.String
+		policyNames := []attr.Value{}
 		for _, item := range repo.Cleanup.PolicyNames {
-			plicyNames = append(plicyNames, types.StringValue(item))
+			policyNames = append(policyNames, types.StringValue(item))
 		}
-		data.Cleanup = model.CleanupModel{
-			PolicyNames: plicyNames,
+		policyNamesTfsdk, _ := types.ListValue(types.StringType, policyNames)
+		data.Cleanup = &model.CleanupModel{
+			PolicyNames: policyNamesTfsdk,
 		}
 	}
 	return

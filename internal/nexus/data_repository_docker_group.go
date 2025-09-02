@@ -33,38 +33,14 @@ func (d *RepositoryDockerGroupDatasource) Schema(ctx context.Context, req dataso
 		Description:         "Use this data source to get an existing docker repository.",
 		MarkdownDescription: "Use this data source to get an existing docker repository.",
 		Blocks: map[string]schema.Block{
-			"negative_cache": tschema.DSNegativeCache,
-			"storage":        tschema.DSStorage,
-			"http_client":    tschema.DSHttpClient,
-			"proxy":          tschema.DSProxy,
-			"cleanup":        tschema.DSCleanUp,
+			"storage": tschema.DSStorage,
+			"group":   tschema.DSGroup,
+			"docker":  tschema.DSDocker,
 		},
 		Attributes: map[string]schema.Attribute{
-			"id": schema.StringAttribute{
-				Description:         "Used to identify data source at nexus",
-				MarkdownDescription: "Used to identify data source at nexus",
-				Computed:            true,
-			},
-			"name": schema.StringAttribute{
-				Description:         "A unique identifier for this repository",
-				MarkdownDescription: "A unique identifier for this repository",
-				Required:            true,
-			},
-			"online": schema.BoolAttribute{
-				Description:         "Whether this repository accepts incoming requests",
-				MarkdownDescription: "Whether this repository accepts incoming requests",
-				Computed:            true,
-			},
-			"distribution": schema.StringAttribute{
-				Description:         "Distribution to fetch",
-				MarkdownDescription: "Distribution to fetch",
-				Computed:            true,
-			},
-			"routing_rule": schema.StringAttribute{
-				Description:         "The name of the routing rule assigned to this repository",
-				MarkdownDescription: "The name of the routing rule assigned to this repository",
-				Computed:            true,
-			},
+			"id":     tschema.DataSourceID,
+			"name":   tschema.DataSourceName,
+			"online": tschema.DataSourceOnline,
 		},
 	}
 }
@@ -105,12 +81,10 @@ func (d *RepositoryDockerGroupDatasource) Read(ctx context.Context, req datasour
 }
 
 func RepositoryDockerGroupGetState(client *nexus3.NexusClient, name string) (data model.RepositoryDockerGroupModel, err error) {
-
 	if name == "" {
 		err = errors.New("name is nil")
 		return
 	}
-
 	repo, err := client.Repository.Docker.Hosted.Get(name)
 	if err != nil {
 		return
@@ -123,18 +97,13 @@ func RepositoryDockerGroupGetState(client *nexus3.NexusClient, name string) (dat
 			BlobStoreName:               types.StringValue(repo.Storage.BlobStoreName),
 			StrictContentTypeValidation: types.BoolValue(repo.Storage.StrictContentTypeValidation),
 		},
-		Component: &model.ComponentModel{
-			ProprietaryComponents: types.BoolValue(repo.Component.ProprietaryComponents),
+		Docker: &model.DockerModel{
+			ForceBasicAuth: types.BoolValue(repo.Docker.ForceBasicAuth),
+			HttpPort:       types.Int64Value(int64(GetValue(repo.Docker.HTTPPort))),
+			HttpsPort:      types.Int64Value(int64(GetValue(repo.Docker.HTTPSPort))),
+			V1Enabled:      types.BoolValue(repo.Docker.V1Enabled),
+			Subdomain:      types.StringValue(*repo.Docker.Subdomain),
 		},
-	}
-	if repo.Cleanup != nil {
-		var plicyNames []types.String
-		for _, item := range repo.Cleanup.PolicyNames {
-			plicyNames = append(plicyNames, types.StringValue(item))
-		}
-		data.Cleanup = &model.CleanupModel{
-			PolicyNames: plicyNames,
-		}
 	}
 	return
 }

@@ -1,6 +1,8 @@
 package nexus
 
 import (
+	"testing"
+
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 )
@@ -14,6 +16,10 @@ provider "nexus" {
   password = "sugar"
 `
 )
+
+func testAccPreCheck(t *testing.T) {
+
+}
 
 var (
 	TestNexusProtoV6ProviderFactories map[string]func() (tfprotov6.ProviderServer, error)

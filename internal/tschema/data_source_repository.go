@@ -1,7 +1,9 @@
 package tschema
 
 import (
+	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
@@ -167,7 +169,7 @@ var (
 			},
 		},
 	}
-	DSStorageV2 = schema.SingleNestedBlock{
+	DSDockerHostedStorage = schema.SingleNestedBlock{
 		Description:         "The storage configuration of the repository",
 		MarkdownDescription: "The storage configuration of the repository",
 		Attributes: map[string]schema.Attribute{
@@ -186,11 +188,76 @@ var (
 				MarkdownDescription: "Controls if deployments of and updates to assets are allowed",
 				Computed:            true,
 			},
-			// "latest_policy": schema.BoolAttribute{
-			// 	Description:         "Whether to allow redeploying the 'latest' tag but defer to the Deployment Policy for all other tags. Only usable with write_policy \"ALLOW_ONCE\"",
-			// 	MarkdownDescription: "Whether to allow redeploying the 'latest' tag but defer to the Deployment Policy for all other tags. Only usable with write_policy \"ALLOW_ONCE\"",
-			// 	Computed:            true,
-			// },
+			"latest_policy": schema.BoolAttribute{
+				Description:         "Whether to allow redeploying the 'latest' tag but defer to the Deployment Policy for all other tags. Only usable with write_policy \"ALLOW_ONCE\"",
+				MarkdownDescription: "Whether to allow redeploying the 'latest' tag but defer to the Deployment Policy for all other tags. Only usable with write_policy \"ALLOW_ONCE\"",
+				Computed:            true,
+			},
+		},
+	}
+	DSGroup = schema.SingleNestedBlock{
+		Description:         "The group configuration of the repository",
+		MarkdownDescription: "The group configuration of the repository",
+		Attributes: map[string]schema.Attribute{
+			"member_names": schema.ListAttribute{
+				Description:         "Member repositories names",
+				MarkdownDescription: "Member repositories names",
+				ElementType:         types.StringType,
+				Required:            true,
+				Validators:          []validator.List{listvalidator.SizeAtLeast(1)},
+			},
+		},
+	}
+	DSDocker = schema.SingleNestedBlock{
+		Description:         "docker contains the configuration of the docker repository",
+		MarkdownDescription: "docker contains the configuration of the docker repository",
+		Attributes: map[string]schema.Attribute{
+			"force_basic_auth": schema.BoolAttribute{
+				Description:         "Whether to force authentication (Docker Bearer Token Realm required if false)",
+				MarkdownDescription: "Whether to force authentication (Docker Bearer Token Realm required if false)",
+				Computed:            true,
+			},
+			"http_port": schema.Int64Attribute{
+				Description:         "Create an HTTP connector at specified port",
+				MarkdownDescription: "Create an HTTP connector at specified port",
+				Computed:            true,
+			},
+			"https_port": schema.Int64Attribute{
+				Description:         "Create an HTTPS connector at specified port",
+				MarkdownDescription: "Create an HTTPS connector at specified port",
+				Computed:            true,
+			},
+			"v1_enabled": schema.BoolAttribute{
+				Description:         "Whether to allow clients to use the V1 API to interact with this repository",
+				MarkdownDescription: "Whether to allow clients to use the V1 API to interact with this repository",
+				Computed:            true,
+			},
+			"subdomain": schema.StringAttribute{
+				Description:         "Pro-only: Whether to allow clients to use subdomain routing connector",
+				MarkdownDescription: "Pro-only: Whether to allow clients to use subdomain routing connector",
+				Computed:            true,
+			},
+		},
+	}
+	DSHostedStorage = schema.SingleNestedBlock{
+		Description:         "The storage configuration of the repository",
+		MarkdownDescription: "The storage configuration of the repository",
+		Attributes: map[string]schema.Attribute{
+			"blob_store_name": schema.StringAttribute{
+				Description:         "Blob store used to store repository contents",
+				MarkdownDescription: "Blob store used to store repository contents",
+				Computed:            true,
+			},
+			"strict_content_type_validation": schema.BoolAttribute{
+				Description:         "Whether to validate uploaded content's MIME type appropriate for the repository format",
+				MarkdownDescription: "Whether to validate uploaded content's MIME type appropriate for the repository format",
+				Computed:            true,
+			},
+			"write_policy": schema.StringAttribute{
+				Description:         "Controls if deployments of and updates to assets are allowed",
+				MarkdownDescription: "Controls if deployments of and updates to assets are allowed",
+				Computed:            true,
+			},
 		},
 	}
 )

@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/datadrivers/go-nexus-client/nexus3"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -150,16 +151,16 @@ func RepositoryAptProxyGetState(client *nexus3.NexusClient, name string) (data m
 		// 	PolicyNames: []types.String{types.StringValue("")},
 		// },
 	}
-	// if repo.Cleanup != nil {
-	// 	var plicyNames []types.String
-	// 	for _, item := range repo.Cleanup.PolicyNames {
-	// 		plicyNames = append(plicyNames, types.StringValue(item))
-	// 	}
-	// data.Cleanup = &CleanupModel{
-	// 	PolicyNames: plicyNames,
-	// }
-	// }
-
+	if repo.Cleanup != nil {
+		policyNames := []attr.Value{}
+		for _, item := range repo.Cleanup.PolicyNames {
+			policyNames = append(policyNames, types.StringValue(item))
+		}
+		policyNamesTfsdk, _ := types.ListValue(types.StringType, policyNames)
+		data.Cleanup = &model.CleanupModel{
+			PolicyNames: policyNamesTfsdk,
+		}
+	}
 	if repo.HTTPClient.Authentication != nil {
 		data.HttpClient = &model.HttpClientModel{
 			Authentication: &model.HttpClientAuthenticationModel{

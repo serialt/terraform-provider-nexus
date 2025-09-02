@@ -96,6 +96,7 @@ func (p *NexusProvider) Resources(ctx context.Context) []func() resource.Resourc
 	return []func() resource.Resource{
 		// NewExampleResource,
 		NewResourceBlobstoreFile,
+		NewResourceRepositoryDockerHostedResource,
 	}
 }
 
@@ -105,6 +106,7 @@ func (p *NexusProvider) DataSources(ctx context.Context) []func() datasource.Dat
 		NewBlobStoreListSource,
 		NewBlobStoreGroupSource,
 		NewRepositoryAptProxyDatasource,
+		NewRepositoryDockerHostedDatasource,
 		// blobstore.NewBlobStoreFileSource,
 	}
 }
