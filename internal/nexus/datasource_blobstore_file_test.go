@@ -4,31 +4,39 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
-	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
-	"github.com/hashicorp/terraform-plugin-testing/statecheck"
-	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestDatasource_BlobStoreFile(t *testing.T) {
 	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: TestNexusProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testDatasourceBlobStoreFileConfig,
-				ConfigStateChecks: []statecheck.StateCheck{
-					statecheck.ExpectKnownValue(
-						"data.scaffolding_example.test",
-						tfjsonpath.New("id"),
-						knownvalue.StringExact("example-id"),
-					),
-				},
+				Config: testDatasourceBlobStoreFileDefaultConfig,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("data.nexus_blobstore_file.default", "name", "default"),
+				),
+			},
+			{
+				Config: testDatasourceBlobStoreFileLocalConfig,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("data.nexus_blobstore_file.local", "name", "local"),
+					resource.TestCheckResourceAttr("data.nexus_blobstore_file.local", "soft_quota.type", "spaceUsedQuota"),
+					resource.TestCheckResourceAttr("data.nexus_blobstore_file.local", "soft_quota.limit", "9"),
+				),
 			},
 		},
 	})
 }
 
-const testDatasourceBlobStoreFileConfig = `
-data "nexus_blobstore_file" "test" {
-  name = "test"
+const testDatasourceBlobStoreFileDefaultConfig = `
+data "nexus_blobstore_file" "default" {
+  name = "default"
+}
+`
+
+const testDatasourceBlobStoreFileLocalConfig = `
+data "nexus_blobstore_file" "local" {
+  name = "local"
 }
 `
